@@ -113,18 +113,68 @@ def lapras_algorithm(image):
 
 
 def fourier_transform_algorithm(image):
-    pass
+    gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    gray_float32=np.float32(gray)
+    dft=cv2.dft(gray_float32,flags=cv2.DFT_COMPLEX_OUTPUT)
+    dft_shift=np.fft.fftshift(dft)
+    magnitude_v=20*np.log(cv2.magnitude(dft_shift[:,:,0],dft_shift[:,:,1]))
+    ans=np.uint8(cv2.cvtColor(magnitude_v,cv2.COLOR_GRAY2BGR))
+    return ans
 
 # 逆滤波复原
 
 
 def inverse_filter_algorithm(image):
+    gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    gray_float32=np.float32(gray)
+    dft=cv2.dft(gray_float32,flags=cv2.DFT_COMPLEX_OUTPUT)
+    dft_shift=np.fft.fftshift(dft)
+    rows, cols = gray.shape
+
+    crow, ccol = int(rows/2), int(cols/2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow-20:crow+20, ccol-20:ccol+20] = 1
+
+    inverse=np.zeros((rows,cols,2))
+    for i in range(rows):
+        for j in range(cols):
+            H=mask[i,j]
+            inverse[i,j]=1/H
+    fshift=dft_shift*inverse
+    ishift=np.fft.ifftshift(fshift)
+    ans=cv2.idft(ishift)
+    ans=cv2.magnitude(ans[:,:,0],ans[:,:,1])
+    ans = cv2.normalize(ans, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    ans=cv2.cvtColor(ans,cv2.COLOR_GRAY2BGR)
+    return ans
     pass
 
 # 维纳滤波复原
 
 
 def wiener_filter_algorithm(image):
+    gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    gray_float32=np.float32(gray)
+    dft=cv2.dft(gray_float32,flags=cv2.DFT_COMPLEX_OUTPUT)
+    dft_shift=np.fft.fftshift(dft)
+    rows, cols = gray.shape
+
+    crow, ccol = int(rows/2), int(cols/2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow-20:crow+20, ccol-20:ccol+20] = 1
+
+    wiener=np.zeros((rows,cols,2))
+    for i in range(rows):
+        for j in range(cols):
+            H=mask[i,j]
+            wiener[i,j]=(abs(H)**2)/(H*(abs(H)**2+0.0025))
+    fshift=dft_shift*wiener
+    ishift=np.fft.ifftshift(fshift)
+    ans=cv2.idft(ishift)
+    ans=cv2.magnitude(ans[:,:,0],ans[:,:,1])
+    ans = cv2.normalize(ans, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    ans=cv2.cvtColor(ans,cv2.COLOR_GRAY2BGR)
+    return ans
     pass
 
 # 均值滤波
@@ -146,25 +196,43 @@ def median_filter_algorithm(image):
 # 高斯低通滤波
 
 
-def gauss_lowpass_algorithm(image):
+def lowpass_algorithm(image):
+    gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    gray_float32=np.float32(gray)
+    dft=cv2.dft(gray_float32,flags=cv2.DFT_COMPLEX_OUTPUT)
+    dft_shift=np.fft.fftshift(dft)
+    rows, cols = gray.shape
+    crow, ccol = int(rows/2), int(cols/2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow-20:crow+20, ccol-20:ccol+20] = 1
+    fshift=dft_shift*mask
+    ishift=np.fft.ifftshift(fshift)
+    ans=cv2.idft(ishift)
+    ans=cv2.magnitude(ans[:,:,0],ans[:,:,1])
+    ans = cv2.normalize(ans, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    ans=cv2.cvtColor(ans,cv2.COLOR_GRAY2BGR)
+    return ans
     pass
 
 # 高斯高通滤波
 
 
-def gauss_highpass_algorithm(image):
-    pass
-
-# 布特沃斯低通滤波
-
-
-def butworth_lowpass_algorithm(image):
-    pass
-
-# 布特沃斯高通滤波
-
-
-def butworth_highpass_algorithm(image):
+def highpass_algorithm(image):
+    gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    gray_float32=np.float32(gray)
+    dft=cv2.dft(gray_float32,flags=cv2.DFT_COMPLEX_OUTPUT)
+    dft_shift=np.fft.fftshift(dft)
+    rows, cols = gray.shape
+    crow, ccol = int(rows/2), int(cols/2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow-20:crow+20, ccol-20:ccol+20] = 0
+    fshift=dft_shift*mask
+    ishift=np.fft.ifftshift(fshift)
+    ans=cv2.idft(ishift)
+    ans=cv2.magnitude(ans[:,:,0],ans[:,:,1])
+    ans = cv2.normalize(ans, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    ans=cv2.cvtColor(ans,cv2.COLOR_GRAY2BGR)
+    return ans
     pass
 
 
@@ -228,7 +296,7 @@ def contour_detection_algorithm(image):
     contours, _ = cv2.findContours(
         thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # 在原图像上绘制轮廓
-    result = cv2.drawContours(image, contours, -1, (0, 255, 0), 1)
+    result = cv2.drawContours(copy.deepcopy(image), contours, -1, (0, 255, 0), 1)
     return result
 
 # 填充轮廓

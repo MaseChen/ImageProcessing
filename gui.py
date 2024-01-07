@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 import numpy as np
 import image_processing as im
 import glob
+import time
 
 # 创建主窗口和菜单栏
 root = Tk()
@@ -14,13 +15,8 @@ menubar = Menu(root)
 root.config(menu=menubar)
 
 # 定义全局变量
-images_path=list()
+images_path=None
 images_path_index=0
-for image_path in glob.glob(os.getcwd()+"\\*.png"):
-    images_path.append(image_path)
-
-for image_path in glob.glob(os.getcwd()+"\\*.jpg"):
-    images_path.append(image_path)
 
 image_path = None
 image = None
@@ -34,7 +30,19 @@ zoom_ratio = 1  # 定义缩放比例
 def init_image():
     # select_image()
     global images_path, images_path_index, image_path, image, processed_image, history, history_index
-    image_path=images_path[images_path_index]
+    images_path=list()
+    images_path_index=0
+    for image_path in glob.glob(os.getcwd()+"\\*.png"):
+        images_path.append(image_path)
+
+    for image_path in glob.glob(os.getcwd()+"\\*.jpg"):
+        images_path.append(image_path)
+
+    for image_path in glob.glob(os.getcwd()+"\\*.bmp"):
+        images_path.append(image_path)
+
+    if images_path:
+        image_path=images_path[images_path_index]
     if image_path:
         root.title(image_path)  # 更新标题栏
         image = cv2.imread(image_path)
@@ -61,6 +69,8 @@ def init_image():
 
 def key_left(event):
     global images_path, images_path_index, image_path, image, processed_image, history, history_index
+    if len(images_path)==0:
+        return
     if images_path_index > 0:
         images_path_index=images_path_index-1
     else:
@@ -77,6 +87,8 @@ def key_left(event):
 
 def key_right(event):
     global images_path, images_path_index, image_path, image, processed_image, history, history_index
+    if len(images_path)==0:
+        return
     images_path_index=(images_path_index+1)% len(images_path)
     image_path=images_path[images_path_index]
     if image_path:
@@ -120,11 +132,26 @@ def show_image(img):
 
 
 def select_image():
-    global image_path, image, processed_image, history, history_index
+    global images_path, images_path_index, image_path, image, processed_image, history, history_index
+
     # 打开文件对话框
-    filetypes = (("JPEG Files", "*.jpg"), ("PNG Files", "*.png"))
+    filetypes = (("JPEG Files", "*.jpg"), ("PNG Files", "*.png"), ("BMP Files", "*.bmp"))
     image_path = filedialog.askopenfilename(
         title="Select Image File", filetypes=filetypes)
+    
+    folder_part = os.path.normpath(os.path.dirname(image_path))
+
+    
+    images_path = list()
+    images_path_index = 0
+    png_files = glob.glob(os.path.join(folder_part, "*.png"))
+    jpg_files = glob.glob(os.path.join(folder_part, "*.jpg"))
+    bmp_files = glob.glob(os.path.join(folder_part, "*.bmp"))
+    images_path.extend(png_files)
+    images_path.extend(jpg_files)
+    images_path.extend(bmp_files)
+
+
     # 如果用户选择了文件，则读取图像并显示，并更新标题栏
     if image_path:
         root.title(image_path)  # 更新标题栏
@@ -180,11 +207,18 @@ def new_image():
 def save_image():
     global processed_image
     # 打开文件对话框
-    filetypes = (("JPEG Files", "*.jpg"), ("PNG Files", "*.png"))
+    filetypes = (("JPEG Files", "*.jpg"), ("PNG Files", "*.png"),("BMP Files", "*.bmp"))
     save_path = filedialog.asksaveasfilename(filetypes=filetypes)
     # 如果用户选择了文件，则保存图像
     if save_path:
         cv2.imwrite(save_path, processed_image)
+
+def update():
+    time.sleep(1)
+    messagebox.showinfo("检查更新", "当前为最新版本")
+
+def reference():
+    messagebox.showinfo("关于", "2024 Copyleft 陈耀信 and 刘彦廷")
 
 # --------------------------------图像处理函数---------------------------------------
 
@@ -201,9 +235,39 @@ def exp_gray_transform():
 # 伽马校正
 
 
-def gamma_correction():
+def gamma_correction_0d4():
     global processed_image, history, history_index
-    processed_image = im.gamma_correction_algorithm(processed_image)
+    processed_image = im.gamma_correction_algorithm(processed_image,0.4)
+    show_image(processed_image)
+    history.append(processed_image)
+    history_index += 1
+def gamma_correction_0d6():
+    global processed_image, history, history_index
+    processed_image = im.gamma_correction_algorithm(processed_image,0.6)
+    show_image(processed_image)
+    history.append(processed_image)
+    history_index += 1
+def gamma_correction_0d8():
+    global processed_image, history, history_index
+    processed_image = im.gamma_correction_algorithm(processed_image,0.8)
+    show_image(processed_image)
+    history.append(processed_image)
+    history_index += 1
+def gamma_correction_1d2():
+    global processed_image, history, history_index
+    processed_image = im.gamma_correction_algorithm(processed_image,1.2)
+    show_image(processed_image)
+    history.append(processed_image)
+    history_index += 1
+def gamma_correction_1d4():
+    global processed_image, history, history_index
+    processed_image = im.gamma_correction_algorithm(processed_image,1.4)
+    show_image(processed_image)
+    history.append(processed_image)
+    history_index += 1
+def gamma_correction_1d6():
+    global processed_image, history, history_index
+    processed_image = im.gamma_correction_algorithm(processed_image,1.6)
     show_image(processed_image)
     history.append(processed_image)
     history_index += 1
@@ -280,9 +344,9 @@ def median_filter():
 
 
 # 高斯低通滤波
-def gauss_lowpass():
+def lowpass():
     global processed_image, history, history_index
-    processed_image = im.gauss_lowpass_algorithm(processed_image)
+    processed_image = im.lowpass_algorithm(processed_image)
     show_image(processed_image)
     history.append(processed_image)
     history_index += 1
@@ -290,32 +354,13 @@ def gauss_lowpass():
 # 高斯高通滤波
 
 
-def gauss_highpass():
+def highpass():
     global processed_image, history, history_index
-    processed_image = im.gauss_highpass_algorithm(processed_image)
+    processed_image = im.highpass_algorithm(processed_image)
     show_image(processed_image)
     history.append(processed_image)
     history_index += 1
 
-# 布特沃斯低通滤波
-
-
-def butworth_lowpass():
-    global processed_image, history, history_index
-    processed_image = im.butworth_lowpass_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-# 布特沃斯高通滤波
-
-
-def butworth_highpass():
-    global processed_image, history, history_index
-    processed_image = im.butworth_highpass_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
 
 # (4) 边缘检测
 # Canny 算法
@@ -389,6 +434,7 @@ def contrast_limited_adaptive_histogram_equalization():
 # 鼠标移动
 
 def on_mouse_move(event):
+    return
     x, y = event.x, event.y
     if processed_image is not None:
         h, w, _ = processed_image.shape
@@ -429,6 +475,7 @@ def on_scroll(event):
 
 
 def on_drag(event):
+    return
     if temp_image:
         # 移动画布显示区域
         temp_image.scan_dragto(event.x, event.y, gain=1)
@@ -440,41 +487,47 @@ def on_drag(event):
 
 # 创建“文件”菜单
 file_menu = Menu(menubar, tearoff=0)
-file_menu.add_command(label="打开", command=select_image)
 file_menu.add_command(label="新建", command=new_image_question)
-file_menu.add_command(label="另存为", command=save_image)
+file_menu.add_command(label="打开", command=select_image)
+file_menu.add_command(label="保存", command=save_image)
 file_menu.add_separator()
 file_menu.add_command(label="退出", command=root.quit)
 menubar.add_cascade(label="文件", menu=file_menu)
 
 # 创建“编辑”菜单
 edit_menu = Menu(menubar, tearoff=0)
-edit_menu.add_command(label="撤销", command=undo, accelerator="Ctrl+Z")
-edit_menu.add_command(label="重做", command=redo, accelerator="Ctrl+Y")
+edit_menu.add_command(label="撤销", command=undo)
+edit_menu.add_command(label="重做", command=redo)
 menubar.add_cascade(label="编辑", menu=edit_menu)
 
 # 图像处理 #写完算法后把command改成对应方法
 image_menu = Menu(menubar, tearoff=0)
 image_menu.add_command(label="指数灰度变换", command=exp_gray_transform)  # 待完成
-image_menu.add_command(label="伽马校正", command=gamma_correction)  # 待完成
 image_menu.add_command(label="彩色负片", command=color_negative)  # 待完成
+image_menu.add_command(label="均值滤波", command=mean_filter)
+image_menu.add_command(label="中值滤波", command=median_filter)
 image_menu.add_command(label="拉普拉斯锐化", command=lapras)  # 待完成
-image_menu.add_command(label="傅里叶变换频谱", command=None)  # 待完成
-menubar.add_cascade(label="图像处理", menu=image_menu)
+menubar.add_cascade(label="彩色图像处理", menu=image_menu)
 
-filter_menu = Menu(image_menu, tearoff=0)
-filter_menu.add_command(label="均值滤波", command=mean_filter)
-filter_menu.add_command(label="中值滤波", command=median_filter)
-filter_menu.add_command(label="高斯低通滤波", command=None)  # 待完成
-filter_menu.add_command(label="高斯高通滤波", command=None)  # 待完成
-filter_menu.add_command(label="布特沃斯低通滤波", command=None)  # 待完成
-filter_menu.add_command(label="布特沃斯高通滤波", command=None)  # 待完成
-image_menu.add_cascade(label="滤波", menu=filter_menu)
+gamma_menu=Menu(image_menu,tearoff=0)
+gamma_menu.add_command(label="0.4", command=gamma_correction_0d4)  # 待完成
+gamma_menu.add_command(label="0.6", command=gamma_correction_0d6)
+gamma_menu.add_command(label="0.8", command=gamma_correction_0d8)
+gamma_menu.add_command(label="1.2", command=gamma_correction_1d2)
+gamma_menu.add_command(label="1.4", command=gamma_correction_1d4)
+gamma_menu.add_command(label="1.6", command=gamma_correction_1d6)
+image_menu.add_cascade(label="伽马校正",menu=gamma_menu)
 
-recovery_menu = Menu(image_menu, tearoff=0)
-recovery_menu.add_command(label="逆滤波复原", command=None)  # 待完成
-recovery_menu.add_command(label="维纳滤波复原", command=None)  # 待完成
-image_menu.add_cascade(label="图像复原", menu=recovery_menu)
+filter_menu = Menu(menubar, tearoff=0)
+filter_menu.add_command(label="傅里叶变换频谱", command=fourier_transform)  # 待完成
+filter_menu.add_command(label="低通滤波", command=lowpass)  # 待完成
+filter_menu.add_command(label="高通滤波", command=highpass)  # 待完成
+menubar.add_cascade(label="频率域操作", menu=filter_menu)
+
+recovery_menu = Menu(menubar, tearoff=0)
+recovery_menu.add_command(label="逆滤波复原", command=inverse_filter)  # 待完成
+recovery_menu.add_command(label="维纳滤波复原", command=wiener_filter)  # 待完成
+menubar.add_cascade(label="图像复原", menu=recovery_menu)
 
 detection_menu = Menu(image_menu, tearoff=0)
 detection_menu.add_command(label="Canny 算法", command=canny)
@@ -491,10 +544,14 @@ equalization_menu.add_command(
     label="限制对比度自适应直方图均衡化", command=contrast_limited_adaptive_histogram_equalization)
 image_menu.add_cascade(label="直方图均衡化", menu=equalization_menu)
 
+help_menu=Menu(menubar,tearoff=0)
+help_menu.add_command(label="检查更新",command=update)
+help_menu.add_command(label="关于",command=reference)
+menubar.add_cascade(label="帮助",menu=help_menu)
 
 # 将主窗口放到屏幕中央
-window_width = 1000
-window_height = 600
+window_width = 1200
+window_height = 700
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 x = int((screen_width - window_width) / 2)
