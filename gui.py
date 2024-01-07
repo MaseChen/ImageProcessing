@@ -5,8 +5,23 @@ from tkinter import filedialog, messagebox, simpledialog
 from PIL import Image, ImageTk
 import numpy as np
 import image_processing as im
+import glob
+
+# 创建主窗口和菜单栏
+root = Tk()
+root.title("图像处理系统")
+menubar = Menu(root)
+root.config(menu=menubar)
 
 # 定义全局变量
+images_path=list()
+images_path_index=0
+for image_path in glob.glob(os.getcwd()+"\\*.png"):
+    images_path.append(image_path)
+
+for image_path in glob.glob(os.getcwd()+"\\*.jpg"):
+    images_path.append(image_path)
+
 image_path = None
 image = None
 processed_image = None
@@ -15,6 +30,63 @@ history = []
 history_index = -1
 image_on_canvas = None
 zoom_ratio = 1  # 定义缩放比例
+
+def init_image():
+    # select_image()
+    global images_path, images_path_index, image_path, image, processed_image, history, history_index
+    image_path=images_path[images_path_index]
+    if image_path:
+        root.title(image_path)  # 更新标题栏
+        image = cv2.imread(image_path)
+        processed_image = image.copy()
+        show_image(image)
+        # 清空历史记录
+        history = [processed_image]
+        history_index = 0
+    
+    # global image_path, image, processed_image, history, history_index
+    # # 打开文件对话框
+    # filetypes = (("JPEG Files", "*.jpg"), ("PNG Files", "*.png"))
+    # image_path = filedialog.askopenfilename(
+    #     title="Select Image File", filetypes=filetypes)
+    # # 如果用户选择了文件，则读取图像并显示，并更新标题栏
+    # if image_path:
+    #     root.title(image_path)  # 更新标题栏
+    #     image = cv2.imread(image_path)
+    #     processed_image = image.copy()
+    #     show_image(image)
+    #     # 清空历史记录
+    #     history = [processed_image]
+    #     history_index = 0
+
+def key_left(event):
+    global images_path, images_path_index, image_path, image, processed_image, history, history_index
+    if images_path_index > 0:
+        images_path_index=images_path_index-1
+    else:
+        images_path_index=len(images_path)-1
+    image_path=images_path[images_path_index]
+    if image_path:
+        root.title(image_path)  # 更新标题栏
+        image = cv2.imread(image_path)
+        processed_image = image.copy()
+        show_image(image)
+        # 清空历史记录
+        history = [processed_image]
+        history_index = 0
+
+def key_right(event):
+    global images_path, images_path_index, image_path, image, processed_image, history, history_index
+    images_path_index=(images_path_index+1)% len(images_path)
+    image_path=images_path[images_path_index]
+    if image_path:
+        root.title(image_path)  # 更新标题栏
+        image = cv2.imread(image_path)
+        processed_image = image.copy()
+        show_image(image)
+        # 清空历史记录
+        history = [processed_image]
+        history_index = 0
 
 # --------------------------------文件操作函数--------------------------------------->
 # 文件操作
@@ -39,6 +111,7 @@ def show_image(img):
 
     # 将 OpenCV 图像转换为 PIL 图像格式并显示
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # im = Image.fromarray((x * 255).astype(np.uint8))
     img = Image.fromarray(img)
     img = ImageTk.PhotoImage(img)
     image_on_canvas = temp_image.create_image(0, 0, anchor=NW, image=img)
@@ -54,7 +127,7 @@ def select_image():
         title="Select Image File", filetypes=filetypes)
     # 如果用户选择了文件，则读取图像并显示，并更新标题栏
     if image_path:
-        root.title("图像处理系统 - 20H034160209 - 刘昕 - " + image_path)  # 更新标题栏
+        root.title(image_path)  # 更新标题栏
         image = cv2.imread(image_path)
         processed_image = image.copy()
         show_image(image)
@@ -92,7 +165,7 @@ def new_image_question():  # 新建图片前查看是否有未保存图片，询
 
 def new_image():
     global image_path, image, processed_image, history, history_index
-    root.title("图像处理系统 - 20H034160209 - 刘昕 - 新建图像")  # 更新标题栏
+    root.title("新建图像")  # 更新标题栏
     # 读取同文件夹下的 white.jpg 图像并复制给 processed_image
     processed_image = cv2.imread('white.jpg')
     image_path = None
@@ -363,11 +436,7 @@ def on_drag(event):
 
 # ----------------------------------UI定义----------------------------------------------
 
-# 创建主窗口和菜单栏
-root = Tk()
-root.title("图像处理系统")
-menubar = Menu(root)
-root.config(menu=menubar)
+
 
 # 创建“文件”菜单
 file_menu = Menu(menubar, tearoff=0)
@@ -386,10 +455,10 @@ menubar.add_cascade(label="编辑", menu=edit_menu)
 
 # 图像处理 #写完算法后把command改成对应方法
 image_menu = Menu(menubar, tearoff=0)
-image_menu.add_command(label="指数灰度变换", command=None)  # 待完成
-image_menu.add_command(label="伽马校正", command=None)  # 待完成
-image_menu.add_command(label="彩色负片", command=None)  # 待完成
-image_menu.add_command(label="拉普拉斯锐化", command=None)  # 待完成
+image_menu.add_command(label="指数灰度变换", command=exp_gray_transform)  # 待完成
+image_menu.add_command(label="伽马校正", command=gamma_correction)  # 待完成
+image_menu.add_command(label="彩色负片", command=color_negative)  # 待完成
+image_menu.add_command(label="拉普拉斯锐化", command=lapras)  # 待完成
 image_menu.add_command(label="傅里叶变换频谱", command=None)  # 待完成
 menubar.add_cascade(label="图像处理", menu=image_menu)
 
@@ -436,6 +505,12 @@ root.geometry("{}x{}+{}+{}".format(window_width, window_height, x, y))
 statusbar = Label(root, text="鼠标位置：(0, 0) | 缩放比例：100%",
                   relief=SUNKEN, anchor=W)
 statusbar.pack(side=BOTTOM, fill=X)
+
+# init_image()
+root.after(10,init_image)
+
+root.bind("<KeyPress-Left>",key_left)
+root.bind("<KeyPress-Right>",key_right)
 
 # 运行主循环
 temp_image = None
