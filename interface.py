@@ -13,114 +13,122 @@ from tkinter import (
     Canvas,
     LEFT,
     NW,
-    Label,
-    SUNKEN,
-    BOTTOM,
-    X,
-    W,
 )
 import algorithms as alg
 
-# 主窗口和菜单栏
-root: Tk = Tk()
-root.title("图像处理系统")
-menubar: Menu = Menu(root)
-root.config(menu=menubar)
 
 # 全局变量
-images_path: Optional[list[str]] = None
-images_path_index: int = 0
-
+image_paths: Optional[list[str]] = None
+image_paths_index: int = 0
 image_path: Optional[str] = None
 image: Optional[MatLike] = None
-processed_image: Optional[MatLike] = None
-temp_image: Optional[Canvas] = None
+modified_image: Optional[MatLike] = None
+canvas_for_show: Optional[Canvas] = None
+image_on_canvas: Optional[int] = None
 history: list[MatLike] = []
 history_index: int = -1
-image_on_canvas: Optional[int] = None
-zoom_ratio: float = 1
 
 
 # 初始化显示图片
 def init_image() -> None:
-    global images_path, images_path_index, image_path, image, processed_image, history, history_index
-    images_path = list()
-    images_path_index = 0
+    global image_paths, image_paths_index, image_path, image, modified_image, history, history_index
+    image_paths = list()
+    image_paths_index = 0
     for image_path in glob.glob(os.getcwd() + "\\*.png"):
-        images_path.append(image_path)
+        image_paths.append(image_path)
 
     for image_path in glob.glob(os.getcwd() + "\\*.jpg"):
-        images_path.append(image_path)
+        image_paths.append(image_path)
 
     for image_path in glob.glob(os.getcwd() + "\\*.bmp"):
-        images_path.append(image_path)
+        image_paths.append(image_path)
 
-    if images_path:
-        image_path = images_path[images_path_index]
+    if image_paths:
+        image_path = image_paths[image_paths_index]
     if image_path:
         root.title(image_path)
         image = cv2.imread(image_path)
-        processed_image = image.copy()
+        modified_image = image.copy()
         show_image(image)
-        history = [processed_image]
-        history_index = 0
-
-
-# 左方向键
-def key_left(_) -> None:
-    global images_path, images_path_index, image_path, image, processed_image, history, history_index
-    if images_path is None or len(images_path) == 0:
-        return
-    if images_path_index > 0:
-        images_path_index = images_path_index - 1
-    else:
-        images_path_index = len(images_path) - 1
-    image_path = images_path[images_path_index]
-    if image_path:
-        root.title(image_path)
-        image = cv2.imread(image_path)
-        processed_image = image.copy()
-        show_image(image)
-        history = [processed_image]
-        history_index = 0
-
-
-# 右方向键
-def key_right(_) -> None:
-    global images_path, images_path_index, image_path, image, processed_image, history, history_index
-    if images_path is None or len(images_path) == 0:
-        return
-    images_path_index = (images_path_index + 1) % len(images_path)
-    image_path = images_path[images_path_index]
-    if image_path:
-        root.title(image_path)
-        image = cv2.imread(image_path)
-        processed_image = image.copy()
-        show_image(image)
-        history = [processed_image]
+        history = [modified_image]
         history_index = 0
 
 
 # 显示图片
 def show_image(img: Optional[MatLike]) -> None:
-    global temp_image, image_on_canvas
+    global canvas_for_show, image_on_canvas
     if img is None:
         return
 
-    if temp_image is None:
-        temp_image = Canvas(root, width=window_width, height=window_height - 50)
-        temp_image.pack(side=LEFT, padx=10, pady=10)
+    if canvas_for_show is None:
+        canvas_for_show = Canvas(root, width=window_width, height=window_height - 50)
+        canvas_for_show.pack(side=LEFT, padx=10, pady=10)
 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img1 = Image.fromarray(img)
     img2 = ImageTk.PhotoImage(img1)
-    image_on_canvas = temp_image.create_image(0, 0, anchor=NW, image=img2)
-    temp_image.image = img2  # type: ignore
+    image_on_canvas = canvas_for_show.create_image(0, 0, anchor=NW, image=img2)
+    canvas_for_show.image = img2  # type: ignore
+
+
+# 左方向键
+def left_key_callback(_) -> None:
+    global image_paths, image_paths_index, image_path, image, modified_image, history, history_index
+    if image_paths is None or len(image_paths) == 0:
+        return
+    if image_paths_index > 0:
+        image_paths_index = image_paths_index - 1
+    else:
+        image_paths_index = len(image_paths) - 1
+    image_path = image_paths[image_paths_index]
+    if image_path:
+        root.title(image_path)
+        image = cv2.imread(image_path)
+        modified_image = image.copy()
+        show_image(image)
+        history = [modified_image]
+        history_index = 0
+
+
+# 右方向键
+def right_key_callback(_) -> None:
+    global image_paths, image_paths_index, image_path, image, modified_image, history, history_index
+    if image_paths is None or len(image_paths) == 0:
+        return
+    image_paths_index = (image_paths_index + 1) % len(image_paths)
+    image_path = image_paths[image_paths_index]
+    if image_path:
+        root.title(image_path)
+        image = cv2.imread(image_path)
+        modified_image = image.copy()
+        show_image(image)
+        history = [modified_image]
+        history_index = 0
+
+
+# 是否保存原有图片
+def image_is_saved() -> None:
+    if image_path:
+        answer = messagebox.askyesno(title="看图软件", message="是否保存当前图片?")
+        if answer:
+            save_image()
+    new_image()
+
+
+# 新建
+def new_image() -> None:
+    global image_path, image, modified_image, history, history_index
+    root.title("新建图像")
+    modified_image = cv2.imread("white.jpg")
+    image_path = None
+    show_image(modified_image)
+    history = [modified_image]
+    history_index = 0
 
 
 # 选择图片
 def select_image() -> None:
-    global images_path, images_path_index, image_path, image, processed_image, history, history_index
+    global image_paths, image_paths_index, image_path, image, modified_image, history, history_index
 
     filetypes = (
         ("JPEG Files", "*.jpg"),
@@ -133,66 +141,28 @@ def select_image() -> None:
 
     folder_part = os.path.normpath(os.path.dirname(image_path))
 
-    images_path = list()
-    images_path_index = 0
+    image_paths = list()
+    image_paths_index = 0
     png_files = glob.glob(os.path.join(folder_part, "*.png"))
     jpg_files = glob.glob(os.path.join(folder_part, "*.jpg"))
     bmp_files = glob.glob(os.path.join(folder_part, "*.bmp"))
-    images_path.extend(png_files)
-    images_path.extend(jpg_files)
-    images_path.extend(bmp_files)
+    image_paths.extend(png_files)
+    image_paths.extend(jpg_files)
+    image_paths.extend(bmp_files)
 
     if image_path:
         root.title(image_path)
         image = cv2.imread(image_path)
-        processed_image = image.copy()
+        modified_image = image.copy()
         show_image(image)
-        history = [processed_image]
+        history = [modified_image]
         history_index = 0
-
-
-# 撤销
-def undo() -> None:
-    global processed_image, history_index
-    if history_index > 0:
-        history_index -= 1
-        processed_image = history[history_index]
-        show_image(processed_image)
-
-
-# 重做
-def redo() -> None:
-    global processed_image, history_index
-    if history_index < len(history) - 1:
-        history_index += 1
-        processed_image = history[history_index]
-        show_image(processed_image)
-
-
-# 保存原有图片
-def new_image_question() -> None:
-    if image_path:
-        answer = messagebox.askyesno(title="图像处理系统", message="是否保存当前图片?")
-        if answer:
-            save_image()
-    new_image()
-
-
-# 新建
-def new_image() -> None:
-    global image_path, image, processed_image, history, history_index
-    root.title("新建图像")
-    processed_image = cv2.imread("white.jpg")
-    image_path = None
-    show_image(processed_image)
-    history = [processed_image]
-    history_index = 0
 
 
 # 保存图像
 def save_image() -> None:
-    global processed_image
-    if processed_image is None:
+    global modified_image
+    if modified_image is None:
         return
     filetypes = (
         ("JPEG Files", "*.jpg"),
@@ -201,7 +171,264 @@ def save_image() -> None:
     )
     save_path = filedialog.asksaveasfilename(filetypes=filetypes)
     if save_path:
-        cv2.imwrite(save_path, processed_image)
+        cv2.imwrite(save_path, modified_image)
+
+
+# 撤销
+def undo() -> None:
+    global modified_image, history_index
+    if history_index > 0:
+        history_index -= 1
+        modified_image = history[history_index]
+        show_image(modified_image)
+
+
+# 重做
+def redo() -> None:
+    global modified_image, history_index
+    if history_index < len(history) - 1:
+        history_index += 1
+        modified_image = history[history_index]
+        show_image(modified_image)
+
+
+# 指数灰度变换
+def exp_gray_transform() -> None:
+    global modified_image, history, history_index
+    modified_image = alg.exp_gray_transform_algorithm(modified_image)  # type: ignore
+    if modified_image is None:
+        return
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 彩色负片
+def color_negative() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.color_negative_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 均值滤波
+def mean_filter() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.mean_filter_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 中值滤波
+def median_filter() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.median_filter_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 拉普拉斯锐化
+def lapras() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.lapras_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 伽马校正
+def gamma_correction_0d4() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.gamma_correction_algorithm(modified_image, 0.4)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+def gamma_correction_0d6() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.gamma_correction_algorithm(modified_image, 0.6)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+def gamma_correction_0d8() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.gamma_correction_algorithm(modified_image, 0.8)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+def gamma_correction_1d2() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.gamma_correction_algorithm(modified_image, 1.2)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+def gamma_correction_1d4() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.gamma_correction_algorithm(modified_image, 1.4)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+def gamma_correction_1d6() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.gamma_correction_algorithm(modified_image, 1.6)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# Canny 算法
+def canny() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.canny_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 外轮廓检测
+def contour_detection() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.contour_detection_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 填充轮廓
+def fill_contour() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.fill_contour_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 全局直方图均衡化
+def global_histogram_equalization() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.global_histogram_equalization_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 局部直方图均衡化
+def local_histogram_equalization() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.local_histogram_equalization_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 限制对比度自适应直方图均衡化
+def contrast_limited_adaptive_histogram_equalization() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.contrast_limited_adaptive_histogram_equalization_algorithm(
+        modified_image
+    )
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 傅里叶变换
+def fourier_transform() -> None:
+    global modified_image, history, history_index
+    modified_image = alg.fourier_transform_algorithm(modified_image)  # type: ignore
+    if modified_image is None:
+        return
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 低通滤波
+def lowpass() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.lowpass_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 高通滤波
+def highpass() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.highpass_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 逆滤波复原
+def inverse_filter() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.inverse_filter_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
+
+
+# 维纳滤波复原
+def wiener_filter() -> None:
+    global modified_image, history, history_index
+    if modified_image is None:
+        return
+    modified_image = alg.wiener_filter_algorithm(modified_image)
+    show_image(modified_image)
+    history.append(modified_image)
+    history_index += 1
 
 
 # 检查升级
@@ -215,248 +442,26 @@ def reference() -> None:
     messagebox.showinfo("关于", "2024 Copyleft cyx and lyt")
 
 
-# 指数灰度变换
-def exp_gray_transform() -> None:
-    global processed_image, history, history_index
-    processed_image = alg.exp_gray_transform_algorithm(processed_image)  # type: ignore
-    if processed_image is None:
-        return
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
+root: Tk = Tk()
+root.title("看图软件")
+menubar: Menu = Menu(root)
+root.config(menu=menubar)
 
+window_width: int = 1200
+window_height: int = 700
+screen_width: int = root.winfo_screenwidth()
+screen_height: int = root.winfo_screenheight()
+x: int = int((screen_width - window_width) / 2)
+y: int = int((screen_height - window_height) / 2)
 
-# 伽马校正
-def gamma_correction_0d4() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.gamma_correction_algorithm(processed_image, 0.4)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-def gamma_correction_0d6() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.gamma_correction_algorithm(processed_image, 0.6)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-def gamma_correction_0d8() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.gamma_correction_algorithm(processed_image, 0.8)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-def gamma_correction_1d2() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.gamma_correction_algorithm(processed_image, 1.2)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-def gamma_correction_1d4() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.gamma_correction_algorithm(processed_image, 1.4)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-def gamma_correction_1d6() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.gamma_correction_algorithm(processed_image, 1.6)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 彩色负片
-def color_negative() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.color_negative_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 拉普拉斯锐化
-def lapras() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.lapras_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 傅里叶变换
-def fourier_transform() -> None:
-    global processed_image, history, history_index
-    processed_image = alg.fourier_transform_algorithm(processed_image)  # type: ignore
-    if processed_image is None:
-        return
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 逆滤波复原
-def inverse_filter() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.inverse_filter_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 维纳滤波复原
-def wiener_filter() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.wiener_filter_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 均值滤波
-def mean_filter() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.mean_filter_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 中值滤波
-def median_filter() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.median_filter_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 高斯低通滤波
-def lowpass() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.lowpass_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 高斯高通滤波
-def highpass() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.highpass_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# Canny 算法
-def canny() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.canny_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 外轮廓检测
-def contour_detection() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.contour_detection_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 填充轮廓
-def fill_contour() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.fill_contour_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 全局直方图均衡化
-def global_histogram_equalization() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.global_histogram_equalization_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 局部直方图均衡化
-def local_histogram_equalization() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.local_histogram_equalization_algorithm(processed_image)
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
-
-# 限制对比度自适应直方图均衡化
-def contrast_limited_adaptive_histogram_equalization() -> None:
-    global processed_image, history, history_index
-    if processed_image is None:
-        return
-    processed_image = alg.contrast_limited_adaptive_histogram_equalization_algorithm(
-        processed_image
-    )
-    show_image(processed_image)
-    history.append(processed_image)
-    history_index += 1
-
+root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+root.after(10, init_image)
+root.bind("<KeyPress-Left>", left_key_callback)
+root.bind("<KeyPress-Right>", right_key_callback)
 
 # 文件
 file_menu: Menu = Menu(menubar, tearoff=0)
-file_menu.add_command(label="新建", command=new_image_question)
+file_menu.add_command(label="新建", command=image_is_saved)
 file_menu.add_command(label="打开", command=select_image)
 file_menu.add_command(label="保存", command=save_image)
 file_menu.add_separator()
@@ -520,21 +525,5 @@ help_menu.add_command(label="检查更新", command=update)
 help_menu.add_command(label="关于", command=reference)
 menubar.add_cascade(label="帮助", menu=help_menu)
 
-window_width: int = 1200
-window_height: int = 700
-screen_width: int = root.winfo_screenwidth()
-screen_height: int = root.winfo_screenheight()
-x: int = int((screen_width - window_width) / 2)
-y: int = int((screen_height - window_height) / 2)
-root.geometry("{}x{}+{}+{}".format(window_width, window_height, x, y))
 
-# statusbar: Label = Label(root, text="鼠标位置：(0, 0) | 缩放比例：100%", relief=SUNKEN, anchor=W)
-# statusbar.pack(side=BOTTOM, fill=X)
-
-root.after(10, init_image)
-
-root.bind("<KeyPress-Left>", key_left)
-root.bind("<KeyPress-Right>", key_right)
-
-temp_image = None
 root.mainloop()

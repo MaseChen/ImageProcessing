@@ -16,89 +16,9 @@ def exp_gray_transform_algorithm(
     return result
 
 
-# 伽马校正
-def gamma_correction_algorithm(image: MatLike, gamma: float = 0.5) -> MatLike:
-    invgamma = 1 / gamma
-    result = np.array(
-        np.power((image / 255), invgamma) * 255, dtype=np.uint8  # type: ignore
-    )
-    return result
-
-
 # 彩色负片
 def color_negative_algorithm(image: MatLike) -> MatLike:
     result = cv2.bitwise_not(image)
-    return result
-
-
-# 拉普拉斯锐化
-def lapras_algorithm(image: MatLike) -> MatLike:
-    grayImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    dst = cv2.Laplacian(grayImage, cv2.CV_16S, ksize=3)  # type: ignore
-    result = cv2.convertScaleAbs(dst)
-    return result
-
-
-# 傅里叶变换
-def fourier_transform_algorithm(image: MatLike) -> np.uint8:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray_float32 = np.float32(gray)  # type: ignore
-    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
-    dft_shift = np.fft.fftshift(dft)
-    magnitude_v = 20 * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))
-    result = np.uint8(cv2.cvtColor(magnitude_v, cv2.COLOR_GRAY2BGR))  # type: ignore
-    return result
-
-
-# 逆滤波复原
-def inverse_filter_algorithm(image: MatLike) -> MatLike:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray_float32 = np.float32(gray)  # type: ignore
-    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
-    dft_shift = np.fft.fftshift(dft)
-    rows, cols = gray.shape
-
-    crow, ccol = int(rows / 2), int(cols / 2)
-    mask = np.ones((rows, cols, 2), np.uint8)
-    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 1
-
-    inverse = np.zeros((rows, cols, 2))
-    for i in range(rows):
-        for j in range(cols):
-            H = mask[i, j]
-            inverse[i, j] = 1 / H
-    fshift = dft_shift * inverse
-    ishift = np.fft.ifftshift(fshift)
-    result = cv2.idft(ishift)
-    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])  # type: ignore
-    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
-    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
-    return result
-
-
-# 维纳滤波复原
-def wiener_filter_algorithm(image: MatLike) -> MatLike:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray_float32 = np.float32(gray)  # type: ignore
-    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
-    dft_shift = np.fft.fftshift(dft)
-    rows, cols = gray.shape
-
-    crow, ccol = int(rows / 2), int(cols / 2)
-    mask = np.ones((rows, cols, 2), np.uint8)
-    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 1
-
-    wiener = np.zeros((rows, cols, 2))
-    for i in range(rows):
-        for j in range(cols):
-            H = mask[i, j]
-            wiener[i, j] = (abs(H) ** 2) / (H * (abs(H) ** 2 + 0.0025))
-    fshift = dft_shift * wiener
-    ishift = np.fft.ifftshift(fshift)
-    result = cv2.idft(ishift)
-    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])
-    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
-    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
     return result
 
 
@@ -114,41 +34,20 @@ def median_filter_algorithm(image: MatLike) -> MatLike:
     return result
 
 
-# 高斯低通滤波
-def lowpass_algorithm(image: MatLike) -> MatLike:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray_float32 = np.float32(gray)  # type: ignore
-    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
-    dft_shift = np.fft.fftshift(dft)
-    rows, cols = gray.shape
-    crow, ccol = int(rows / 2), int(cols / 2)
-    mask = np.ones((rows, cols, 2), np.uint8)
-    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 1
-    fshift = dft_shift * mask
-    ishift = np.fft.ifftshift(fshift)
-    result = cv2.idft(ishift)
-    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])
-    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
-    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+# 拉普拉斯锐化
+def lapras_algorithm(image: MatLike) -> MatLike:
+    grayImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    dst = cv2.Laplacian(grayImage, cv2.CV_16S, ksize=3)  # type: ignore
+    result = cv2.convertScaleAbs(dst)
     return result
 
 
-# 高斯高通滤波
-def highpass_algorithm(image: MatLike) -> MatLike:
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray_float32 = np.float32(gray)  # type: ignore
-    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
-    dft_shift = np.fft.fftshift(dft)
-    rows, cols = gray.shape
-    crow, ccol = int(rows / 2), int(cols / 2)
-    mask = np.ones((rows, cols, 2), np.uint8)
-    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 0
-    fshift = dft_shift * mask
-    ishift = np.fft.ifftshift(fshift)
-    result = cv2.idft(ishift)
-    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])
-    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
-    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+# 伽马校正
+def gamma_correction_algorithm(image: MatLike, gamma: float = 0.5) -> MatLike:
+    invgamma = 1 / gamma
+    result = np.array(
+        np.power((image / 255), invgamma) * 255, dtype=np.uint8  # type: ignore
+    )
     return result
 
 
@@ -203,4 +102,105 @@ def contrast_limited_adaptive_histogram_equalization_algorithm(
     L_equalized = clahe.apply(L)
     lab = cv2.merge((L_equalized, a, b))
     result = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+    return result
+
+
+# 傅里叶变换
+def fourier_transform_algorithm(image: MatLike) -> np.uint8:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_float32 = np.float32(gray)  # type: ignore
+    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
+    dft_shift = np.fft.fftshift(dft)
+    magnitude_v = 20 * np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))
+    result = np.uint8(cv2.cvtColor(magnitude_v, cv2.COLOR_GRAY2BGR))  # type: ignore
+    return result
+
+
+# 低通滤波
+def lowpass_algorithm(image: MatLike) -> MatLike:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_float32 = np.float32(gray)  # type: ignore
+    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
+    dft_shift = np.fft.fftshift(dft)
+    rows, cols = gray.shape
+    crow, ccol = int(rows / 2), int(cols / 2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 1
+    fshift = dft_shift * mask
+    ishift = np.fft.ifftshift(fshift)
+    result = cv2.idft(ishift)
+    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])
+    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
+    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+    return result
+
+
+# 高通滤波
+def highpass_algorithm(image: MatLike) -> MatLike:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_float32 = np.float32(gray)  # type: ignore
+    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
+    dft_shift = np.fft.fftshift(dft)
+    rows, cols = gray.shape
+    crow, ccol = int(rows / 2), int(cols / 2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 0
+    fshift = dft_shift * mask
+    ishift = np.fft.ifftshift(fshift)
+    result = cv2.idft(ishift)
+    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])
+    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
+    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+    return result
+
+
+# 逆滤波复原
+def inverse_filter_algorithm(image: MatLike) -> MatLike:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_float32 = np.float32(gray)  # type: ignore
+    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
+    dft_shift = np.fft.fftshift(dft)
+    rows, cols = gray.shape
+
+    crow, ccol = int(rows / 2), int(cols / 2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 1
+
+    inverse = np.zeros((rows, cols, 2))
+    for i in range(rows):
+        for j in range(cols):
+            H = mask[i, j]
+            inverse[i, j] = 1 / H
+    fshift = dft_shift * inverse
+    ishift = np.fft.ifftshift(fshift)
+    result = cv2.idft(ishift)
+    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])  # type: ignore
+    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
+    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+    return result
+
+
+# 维纳滤波复原
+def wiener_filter_algorithm(image: MatLike) -> MatLike:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_float32 = np.float32(gray)  # type: ignore
+    dft = cv2.dft(gray_float32, flags=cv2.DFT_COMPLEX_OUTPUT)  # type: ignore
+    dft_shift = np.fft.fftshift(dft)
+    rows, cols = gray.shape
+
+    crow, ccol = int(rows / 2), int(cols / 2)
+    mask = np.ones((rows, cols, 2), np.uint8)
+    mask[crow - 20 : crow + 20, ccol - 20 : ccol + 20] = 1
+
+    wiener = np.zeros((rows, cols, 2))
+    for i in range(rows):
+        for j in range(cols):
+            H = mask[i, j]
+            wiener[i, j] = (abs(H) ** 2) / (H * (abs(H) ** 2 + 0.0025))
+    fshift = dft_shift * wiener
+    ishift = np.fft.ifftshift(fshift)
+    result = cv2.idft(ishift)
+    result = cv2.magnitude(result[:, :, 0], result[:, :, 1])
+    result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)  # type: ignore
+    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
     return result
